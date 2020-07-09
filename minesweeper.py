@@ -1,13 +1,24 @@
-import numpy
-import random
 import math
+import random
 
+import numpy
 
 MINE_BIT = 0b01
 FLAG_BIT = 0b10
 
 EMPTY_SLOT = 0xFF
 FLAG_SLOT = 0xFE
+
+SURROUNDING = [
+    (1, 0),
+    (1, 1),
+    (0, 1),
+    (-1, 1),
+    (-1, 0),
+    (-1, -1),
+    (0, -1),
+    (1, -1),
+]
 
 
 class Minesweeper:
@@ -19,8 +30,8 @@ class Minesweeper:
             shape, bomb_count = shape[:-1], shape[-1]
         if math.prod(shape) < bomb_count:
             raise ValueError('cannot be more bombs than spaces on the board')
-        self.board_matrix = numpy.zeros(shape, 'int16')
-        self.render_matrix = numpy.ones(shape, 'int8') * EMPTY_SLOT
+        self.board_matrix = numpy.zeros(shape, 'uint16')
+        self.render_matrix = numpy.full(shape, EMPTY_SLOT, 'uint8')
         randomizer = random.Random(seed)
         bombs = []
         while bomb_count:
@@ -32,3 +43,41 @@ class Minesweeper:
                 bombs.append(bomb)
                 self.board_matrix[bomb] |= MINE_BIT
                 bomb_count -= 1
+
+    def add_flag(self, *pos):
+        self.board_matrix[pos] |= FLAG_BIT
+        self.render_matrix[pos] = FLAG_SLOT
+
+    def remove_flag(self, *pos):
+        self.board_matrix[pos] ^= FLAG_BIT
+        self.render_matrix[pos] = EMPTY_SLOT
+
+    def is_flagged(self, *pos):
+        return FLAG_BIT & self.board_matrix[pos]
+
+    def toggle_flag(self, *pos):
+        if self.is_flagged(*pos):
+            self.remove_flag(*pos)
+        else:
+            self.add_flag(*pos)
+
+    def _reveal(self, pos):
+        cell = self.board_matrix[pos]
+        if cell & MINE_BIT:
+            return -1
+        elif cell & FLAG_BIT:
+            return -2
+        else:
+            count = 0
+            for direction in SURROUNDING:
+                newpos = (pos[0] + direction[0], pos[1] + direction[1])
+                shape = self.board_matrix.shape
+                if all(map((lambda x: x[1] >= 0 and x[1] < shape[x[0]]), enumerate(newpos))):
+                    count += self.board_matrix[newpos] & MINE_BIT
+            return count
+
+    def reveal(self, *pos):
+        count = self._reveal(pos)
+        if count >= 0:
+            self.render_matrix[pos] = count
+        return count

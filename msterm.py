@@ -1,4 +1,4 @@
-from minesweeper import Minesweeper, EMPTY_SLOT, FLAG_SLOT, MINE_BIT, FLAG_BIT
+from minesweeper import EMPTY_SLOT, FLAG_BIT, FLAG_SLOT, MINE_BIT, Minesweeper
 
 
 def render(board):
