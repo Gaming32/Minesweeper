@@ -84,6 +84,7 @@ def main():
     config = load_config()
     board_width = config.getint('board', 'width')
     board_height = config.getint('board', 'height')
+    bomb_count = config.getint('board', 'bombs')
     cell_size = config.getint('view', 'cell-size')
     cell_border = config.getint('view', 'cell-border')
     colors = {name: hex_to_color(value) for (name, value) in config['colors'].items()}
@@ -99,7 +100,7 @@ def main():
     else:
         font = pygame.font.SysFont(rawfontname, fontsize)
 
-    board = Minesweeper()
+    board = Minesweeper(board_height, board_width, bomb_count)
 
     real_cell_size = cell_size - cell_border
 
