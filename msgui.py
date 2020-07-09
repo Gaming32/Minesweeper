@@ -111,8 +111,8 @@ def main():
     flag_image = pygame.image.load(filename).convert_alpha()
     flag_image = pygame.transform.scale(flag_image, (real_cell_size, real_cell_size))
 
-    from msterm import render as render_term
-    render_term(board)
+    # from msterm import render as render_term
+    # render_term(board)
 
     dead = False
 
