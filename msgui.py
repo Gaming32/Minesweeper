@@ -36,7 +36,7 @@ def hex_to_color(s):
     return r, g, b
 
 
-def image_color_not_dead(item, colors, font, flag_image):
+def image_color_not_dead(item, colors, font, flag_image, cell_size, cell_border):
     if item == EMPTY_SLOT:
         color = colors['normal']
         image = None
@@ -48,7 +48,19 @@ def image_color_not_dead(item, colors, font, flag_image):
         image = None
     else:
         color = colors['selected']
-        image = font.render(str(item), True, colors['number'])
+        text = str(item)
+        text_size = font.size(text)
+        actual_size = cell_size - cell_border * 2
+        image = pygame.Surface((actual_size, actual_size))
+        image.fill(color)
+        image.blit(font.render(text, True, colors['number']), pygame.Rect(
+            (
+                actual_size - text_size[0] * 2.00,
+                actual_size - text_size[1] * 1.25,
+            ),
+            text_size,
+        ))
+
     return color, image
 
 
@@ -66,14 +78,14 @@ def render(surface, board, cell_size, cell_border, flag_image, bomb_image, color
             )
 
             if not dead:
-                color, image = image_color_not_dead(item, colors, font, flag_image)
+                color, image = image_color_not_dead(item, colors, font, flag_image, cell_size, cell_border)
             else:
                 internal_item = board.board_matrix[ri, ci]
                 if internal_item & MINE_BIT:
                     color = colors['bomb']
                     image = bomb_image
                 else:
-                    color, image = image_color_not_dead(item, colors, font, flag_image)
+                    color, image = image_color_not_dead(item, colors, font, flag_image, cell_size, cell_border)
                 
             surface.fill(color, location)
             if image is not None:
