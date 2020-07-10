@@ -1,7 +1,7 @@
 import math
 import random
 
-import numpy
+import numpy as np
 
 MINE_BIT = 0b01
 FLAG_BIT = 0b10
@@ -30,8 +30,8 @@ class Minesweeper:
             shape, bomb_count = shape[:-1], shape[-1]
         if math.prod(shape) < bomb_count:
             raise ValueError('cannot be more bombs than spaces on the board')
-        self.board_matrix = numpy.zeros(shape, 'uint16')
-        self.render_matrix = numpy.full(shape, EMPTY_SLOT, 'uint8')
+        self.board_matrix = np.zeros(shape, 'uint16')
+        self.render_matrix = np.full(shape, EMPTY_SLOT, 'uint8')
         randomizer = random.Random(seed)
         bombs = []
         while bomb_count:
@@ -99,3 +99,11 @@ class Minesweeper:
                     if newpos not in reached:
                         self.recursive_reveal(*newpos, reached=reached)
         return count
+
+    def has_won(self):
+        return all((bool(cell & FLAG_BIT) == bool(cell & MINE_BIT)) for cell in np.nditer(self.board_matrix))
+
+    def reveal_all(self):
+        for (pos, cell) in np.ndenumerate(self.board_matrix):
+            if not cell & FLAG_BIT and not cell & MINE_BIT:
+                self.reveal(*pos)

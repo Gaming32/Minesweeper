@@ -64,7 +64,7 @@ def image_color_not_dead(item, colors, font, flag_image, cell_size, cell_border)
     return color, image
 
 
-def render(surface, board, cell_size, cell_border, flag_image, bomb_image, colors, font, dead):
+def render(surface, board, cell_size, cell_border, flag_image, bomb_image, colors, font, state):
     surface.fill(colors['clear'])
 
     for (ri, row) in enumerate(board.render_matrix):
@@ -77,7 +77,7 @@ def render(surface, board, cell_size, cell_border, flag_image, bomb_image, color
                 cell_size - cell_border * 2,
             )
 
-            if not dead:
+            if state != 1:
                 color, image = image_color_not_dead(item, colors, font, flag_image, cell_size, cell_border)
             else:
                 internal_item = board.board_matrix[ri, ci]
@@ -127,7 +127,7 @@ def main():
     # from msterm import render as render_term
     # render_term(board)
 
-    dead = False
+    state = 0
 
     clock = pygame.time.Clock()
     while True:
@@ -137,17 +137,22 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
-            if event.type == pygame.MOUSEBUTTONDOWN and not dead:
+            if event.type == pygame.MOUSEBUTTONDOWN and not state:
                 cell = (event.pos[1] // cell_size, event.pos[0] // cell_size)
                 print('you', event.button, 'clicked', cell)
                 if event.button == 1:
                     count = board.recursive_reveal(*cell)
                     if count == -1:
-                        dead = True
+                        print('Game Over!')
+                        state = 1
                 elif event.button == 3:
                     board.toggle_flag(*cell)
+                    if board.has_won():
+                        print('You Won!')
+                        state = 2
+                        board.reveal_all()
 
-        render(screen, board, cell_size, cell_border, flag_image, bomb_image, colors, font, dead)
+        render(screen, board, cell_size, cell_border, flag_image, bomb_image, colors, font, state)
         # if dead:
         #     screen.blit(font.render('Game Over!', True, colors['bomb']), pygame.Rect(10, 10, 200, 200))
         pygame.display.update()
