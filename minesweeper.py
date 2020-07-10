@@ -63,15 +63,16 @@ class Minesweeper:
 
     def _reveal(self, pos):
         cell = self.board_matrix[pos]
-        if cell & MINE_BIT:
-            return -1
-        elif cell & FLAG_BIT:
+        if cell & FLAG_BIT:
             return -2
+        elif cell & MINE_BIT:
+            return -1
         else:
             count = 0
+            shape = self.board_matrix.shape
             for direction in SURROUNDING:
-                newpos = (pos[0] + direction[0], pos[1] + direction[1])
-                shape = self.board_matrix.shape
+                # newpos = (pos[0] + direction[0], pos[1] + direction[1])
+                newpos = tuple(map(sum, ((pos[x], direction[x]) for x in range(len(direction)))))
                 if all(map((lambda x: x[1] >= 0 and x[1] < shape[x[0]]), enumerate(newpos))):
                     count += self.board_matrix[newpos] & MINE_BIT
             return count
@@ -80,4 +81,21 @@ class Minesweeper:
         count = self._reveal(pos)
         if count >= 0:
             self.render_matrix[pos] = count
+        return count
+
+    def recursive_reveal(self, *pos, reached=None):
+        if reached is None:
+            reached = set()
+        if pos in reached:
+            return None
+        count = self.reveal(*pos)
+        reached.add(pos)
+        if count == 0:
+            shape = self.board_matrix.shape
+            for direction in SURROUNDING:
+                # newpos = (pos[0] + direction[0], pos[1] + direction[1])
+                newpos = tuple(map(sum, ((pos[x], direction[x]) for x in range(len(direction)))))
+                if all(map((lambda x: x[1] >= 0 and x[1] < shape[x[0]]), enumerate(newpos))):
+                    if newpos not in reached:
+                        self.recursive_reveal(*newpos, reached=reached)
         return count

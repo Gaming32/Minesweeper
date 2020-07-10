@@ -55,8 +55,8 @@ def image_color_not_dead(item, colors, font, flag_image, cell_size, cell_border)
         image.fill(color)
         image.blit(font.render(text, True, colors['number']), pygame.Rect(
             (
-                actual_size - text_size[0] * 2.00,
-                actual_size - text_size[1] * 1.25,
+                actual_size / 2 - text_size[0] / 2,
+                actual_size / 2 - text_size[1] / 2,
             ),
             text_size,
         ))
@@ -141,7 +141,7 @@ def main():
                 cell = (event.pos[1] // cell_size, event.pos[0] // cell_size)
                 print('you', event.button, 'clicked', cell)
                 if event.button == 1:
-                    count = board.reveal(*cell)
+                    count = board.recursive_reveal(*cell)
                     if count == -1:
                         dead = True
                 elif event.button == 3:
