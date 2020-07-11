@@ -105,7 +105,9 @@ def main():
     fontsize = config.getint('view', 'font-size')
 
     pygame.init()
-    screen = pygame.display.set_mode((board_width * cell_size, board_height * cell_size))
+    render_size = (board_width * cell_size, board_height * cell_size)
+    render_surface = pygame.Surface(render_size)
+    screen = pygame.display.set_mode((render_size[0], render_size[1] + cell_size))
 
     if os.path.exists(fontname):
         font = pygame.font.Font(fontname, fontsize)
@@ -123,6 +125,17 @@ def main():
     filename = get_file(config.get('images', 'flag'))
     flag_image = pygame.image.load(filename).convert_alpha()
     flag_image = pygame.transform.scale(flag_image, (real_cell_size, real_cell_size))
+    bomb_image = pygame.transform.scale(bomb_image, (real_cell_size, real_cell_size))
+
+    filename = get_file(config.get('images', 'faces'))
+    faces_image = pygame.image.load(filename).convert_alpha()
+    faces_image = pygame.transform.scale(faces_image, (cell_size, cell_size * 5))
+    faces = []
+    for y in range(0, faces_image.get_size()[1], cell_size):
+        faces.append(pygame.Surface((cell_size, cell_size)))
+        faces[-1].blit(faces_image, (0, 0), (0, y, cell_size, cell_size))
+    del faces_image
+    face = 4
 
     # from msterm import render as render_term
     # render_term(board)
@@ -140,22 +153,42 @@ def main():
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_F2:
                 board = Minesweeper(board_height, board_width, bomb_count)
                 state = 0
-            elif event.type == pygame.MOUSEBUTTONDOWN and not state:
-                cell = (event.pos[1] // cell_size, event.pos[0] // cell_size)
-                print('you', event.button, 'clicked', cell)
-                if event.button == 1:
-                    count = board.recursive_reveal(*cell)
-                    if count == -1:
-                        print('Game Over!')
-                        state = 1
-                elif event.button == 3:
-                    board.toggle_flag(*cell)
-                    if board.has_won():
-                        print('You Won!')
-                        state = 2
-                        board.reveal_all()
+                face = 4
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.pos[1] < cell_size:
+                    if event.button == 1:
+                        if event.pos[0] < cell_size:
+                            face = 0
+                else:
+                    face = 3
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.pos[1] < cell_size:
+                    if event.button == 1:
+                        if event.pos[0] < cell_size:
+                            board = Minesweeper(board_height, board_width, bomb_count)
+                            state = 0
+                            face = 4
+                elif not state:
+                    face = 4
+                    cell = (event.pos[1] // cell_size - 1, event.pos[0] // cell_size)
+                    print('you', event.button, 'clicked', cell)
+                    if event.button == 1:
+                        count = board.recursive_reveal(*cell)
+                        if count == -1:
+                            print('Game Over!')
+                            state = 1
+                            face = 2
+                    elif event.button == 3:
+                        board.toggle_flag(*cell)
+                        if board.has_won():
+                            print('You Won!')
+                            state = 2
+                            face = 1
+                            board.reveal_all()
 
-        render(screen, board, cell_size, cell_border, flag_image, bomb_image, colors, font, state)
+        screen.blit(faces[face], (0, 0))
+        render(render_surface, board, cell_size, cell_border, flag_image, bomb_image, colors, font, state)
+        screen.blit(render_surface, (0, cell_size))
         # if dead:
         #     screen.blit(font.render('Game Over!', True, colors['bomb']), pygame.Rect(10, 10, 200, 200))
         pygame.display.update()
