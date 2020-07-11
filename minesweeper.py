@@ -83,22 +83,27 @@ class Minesweeper:
             self.render_matrix[pos] = count
         return count
 
-    def recursive_reveal(self, *pos, reached=None):
-        if reached is None:
-            reached = set()
-        if pos in reached:
-            return None
-        count = self.reveal(*pos)
-        reached.add(pos)
-        if count == 0:
-            shape = self.board_matrix.shape
-            for direction in SURROUNDING:
-                # newpos = (pos[0] + direction[0], pos[1] + direction[1])
-                newpos = tuple(map(sum, ((pos[x], direction[x]) for x in range(len(direction)))))
-                if all(map((lambda x: x[1] >= 0 and x[1] < shape[x[0]]), enumerate(newpos))):
-                    if newpos not in reached:
-                        self.recursive_reveal(*newpos, reached=reached)
-        return count
+    def recursive_reveal(self, *pos):
+        reached = set()
+        to_search = {pos}
+        retcount = None
+        shape = self.board_matrix.shape
+        while to_search:
+            for subpos in to_search.copy():
+                to_search.remove(subpos)
+                if subpos in reached:
+                    continue
+                reached.add(subpos)
+                count = self.reveal(*subpos)
+                retcount = count if retcount is None else retcount
+                if count == 0:
+                    for direction in SURROUNDING:
+                        # newpos = (pos[0] + direction[0], pos[1] + direction[1])
+                        newpos = tuple(map(sum, ((subpos[x], direction[x]) for x in range(len(direction)))))
+                        if newpos not in reached \
+                                and all(map((lambda x: x[1] >= 0 and x[1] < shape[x[0]]), enumerate(newpos))):
+                            to_search.add(newpos)
+        return retcount
 
     def has_won(self):
         return all((bool(cell & FLAG_BIT) == bool(cell & MINE_BIT)) for cell in np.nditer(self.board_matrix))
