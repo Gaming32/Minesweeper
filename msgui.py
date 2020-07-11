@@ -137,7 +137,10 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
-            if event.type == pygame.MOUSEBUTTONDOWN and not state:
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F2:
+                board = Minesweeper(board_height, board_width, bomb_count)
+                state = 0
+            elif event.type == pygame.MOUSEBUTTONDOWN and not state:
                 cell = (event.pos[1] // cell_size, event.pos[0] // cell_size)
                 print('you', event.button, 'clicked', cell)
                 if event.button == 1:
