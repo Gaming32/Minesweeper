@@ -162,8 +162,8 @@ def main():
                             face = 0
                 elif state == 1:
                     face = 2
-                elif state = 2:
-                    face == 1
+                elif state == 2:
+                    face = 1
                 else:
                     face = 3
             elif event.type == pygame.MOUSEBUTTONUP:
