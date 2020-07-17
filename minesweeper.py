@@ -1,4 +1,3 @@
-import math
 import random
 
 import numpy as np
@@ -28,7 +27,7 @@ class Minesweeper:
             bomb_count = 7
         else:
             shape, bomb_count = shape[:-1], shape[-1]
-        if math.prod(shape) < bomb_count:
+        if np.prod(shape) < bomb_count:
             raise ValueError('cannot be more bombs than spaces on the board')
         self.board_matrix = np.zeros(shape, 'uint16')
         self.render_matrix = np.full(shape, EMPTY_SLOT, 'uint8')
