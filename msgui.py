@@ -1,5 +1,7 @@
 import configparser
+from math import ceil
 import os
+import math
 
 import pygame
 
@@ -64,8 +66,8 @@ def image_color_not_dead(item, colors, font, flag_image, cell_size, cell_border)
     return color, image
 
 
-def render(surface, board, cell_size, cell_border, flag_image, bomb_image, colors, font, state):
-    for (ri, row) in enumerate(board.render_matrix):
+def render(surface, render_matrix, board_matrix, cell_size, cell_border, flag_image, bomb_image, colors, font, state):
+    for (ri, row) in enumerate(render_matrix):
         for (ci, item) in enumerate(row):
 
             location = pygame.Rect(
@@ -78,7 +80,7 @@ def render(surface, board, cell_size, cell_border, flag_image, bomb_image, color
             if state != 1:
                 color, image = image_color_not_dead(item, colors, font, flag_image, cell_size, cell_border)
             else:
-                internal_item = board.board_matrix[ri, ci]
+                internal_item = board_matrix[ri, ci]
                 if internal_item & MINE_BIT:
                     color = colors['bomb']
                     image = bomb_image
@@ -112,8 +114,10 @@ def main():
 
     if os.path.exists(fontname):
         font = pygame.font.Font(fontname, fontsize)
+        zoom_font = pygame.font.Font(fontname, fontsize * zoom_scale)
     else:
         font = pygame.font.SysFont(rawfontname, fontsize)
+        zoom_font = pygame.font.SysFont(rawfontname, fontsize * zoom_scale)
 
     board = Minesweeper(board_height, board_width, bomb_count)
 
@@ -121,12 +125,13 @@ def main():
 
     filename = get_file(config.get('images', 'bomb'))
     bomb_image = pygame.image.load(filename).convert_alpha()
-    bomb_image = pygame.transform.scale(bomb_image, (real_cell_size, real_cell_size))
+    scaled_bomb_image = pygame.transform.scale(bomb_image, (real_cell_size, real_cell_size))
+    bomb_image = pygame.transform.scale(bomb_image, (zoom_size, zoom_size))
 
     filename = get_file(config.get('images', 'flag'))
     flag_image = pygame.image.load(filename).convert_alpha()
-    flag_image = pygame.transform.scale(flag_image, (real_cell_size, real_cell_size))
-    bomb_image = pygame.transform.scale(bomb_image, (real_cell_size, real_cell_size))
+    scaled_flag_image = pygame.transform.scale(flag_image, (real_cell_size, real_cell_size))
+    flag_image = pygame.transform.scale(flag_image, (zoom_size, zoom_size))
 
     filename = get_file(config.get('images', 'faces'))
     faces_image = pygame.image.load(filename).convert_alpha()
@@ -140,6 +145,10 @@ def main():
 
     # from msterm import render as render_term
     # render_term(board)
+
+    zoom_size_diff = zoom_size - zoomed_cell_size
+    zoom = zoom_size_diff > 0
+    zoom_cell_size = zoom_size // zoom_scale
 
     state = 0
 
@@ -194,23 +203,75 @@ def main():
         screen.fill(colors['clear'])
 
         screen.blit(faces[face], (0, 0))
-        render(render_surface, board, cell_size, cell_border, flag_image, bomb_image, colors, font, state)
+        render(
+            render_surface,
+            board.render_matrix,
+            board.board_matrix,
+            cell_size,
+            cell_border,
+            scaled_flag_image,
+            scaled_bomb_image,
+            colors,
+            font,
+            state,
+        )
         screen.blit(render_surface, (0, cell_size))
 
-        if not state:
-            mouse_pos = pygame.mouse.get_pos()
+        if not state and zoom:
             try:
+                mouse_pos = pygame.mouse.get_pos()
                 if mouse_pos[1] >= zoomed_cell_size:
-                    size_diff = zoom_size - zoomed_cell_size
-                    if size_diff > 0:
-                        location = (mouse_pos[0] - zoomed_cell_size // 2, mouse_pos[1] - zoomed_cell_size // 2)
-                        edge_location = (location[0] + zoom_size // 2, location[1] + zoom_size // 2)
-                        if location >= (0, 0) and edge_location <= screen.get_size():
-                            surface = screen.copy().subsurface(pygame.Rect(location, (zoomed_cell_size, zoomed_cell_size)))
-                            draw_location = (location[0] - zoom_size // 4, location[1] - zoom_size // 4)
-                            screen.blit(pygame.transform.scale(surface, (zoom_size, zoom_size)), draw_location)
+                    location = (mouse_pos[0] - zoomed_cell_size // 2, mouse_pos[1] - zoomed_cell_size // 2)
+                    edge_location = (location[0] + zoom_size // 2, location[1] + zoom_size // 2)
+                    if location >= (0, 0) and edge_location <= screen.get_size():
+                        cell = (mouse_pos[1] // cell_size - 1, mouse_pos[0] // cell_size)
+                        zoom_rect = (
+                            math.floor(cell[0] - zoom_scale / 2),
+                            math.floor(cell[1] - zoom_scale / 2),
+                            math.ceil(cell[0] + zoom_scale / 2),
+                            math.ceil(cell[1] + zoom_scale / 2),
+                        )
+                        zoomed_cells = board.render_matrix[
+                            zoom_rect[0] : zoom_rect[2] + 1,
+                            zoom_rect[1] : zoom_rect[3] + 1
+                        ]
+                        zoomed_board_cells = board.board_matrix[
+                            zoom_rect[0] : zoom_rect[2] + 1,
+                            zoom_rect[1] : zoom_rect[3] + 1
+                        ]
+                        # print(zoomed_cells)
+                        # surface = screen.copy().subsurface(pygame.Rect(location, (zoomed_cell_size, zoomed_cell_size)))
+                        zoom_scale_diff = (zoom_size // zoom_scale // cell_size)
+                        surface = pygame.Surface((render_size[0] * zoom_scale_diff, render_size[1] * zoom_scale_diff))
+                        render(
+                            surface,
+                            board.render_matrix,
+                            board.board_matrix,
+                            zoom_cell_size,
+                            cell_border * zoom_scale,
+                            flag_image,
+                            bomb_image,
+                            colors,
+                            zoom_font,
+                            state,
+                        )
+                        draw_location = (location[0] - zoom_size // 4, location[1] - zoom_size // 4)
+                        zoom_offset = zoom_scale * cell_size
+                        # print((
+                        #     mouse_pos[0] * zoom_scale,
+                        #     mouse_pos[1] * zoom_scale,
+                        #     zoom_size,
+                        #     zoom_size,
+                        # ), '           ', end='\r')
+                        # print(len(zoomed_cells), '        ', end='\r')
+                        screen.blit(surface, draw_location, (
+                            mouse_pos[0] * zoom_scale_diff - zoom_offset,
+                            mouse_pos[1] * zoom_scale_diff - 2 * zoom_offset,
+                            zoom_size,
+                            zoom_size,
+                        ))
             except Exception:
-                pass
+                raise
         pygame.display.update()
 
 
